@@ -83,7 +83,51 @@ def compute_fitness(observed_transcript_numbers, target_frequencies):
     ln_freqs = np.log(observed_frequencies / target_frequencies)
     return np.exp(-np.sum(np.abs(ln_freqs)))
 
+def genome_inversion(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
+                     inversion_start, inversion_end):        
+    """Perform a genome innversion onn given genome at given positions..
+    
+    Parameters
+    ----------
+    genome_size : int
+        Genome size in base pair.
+    genes_start_pos : Numpy array
+        Array of ints representing the begining position of genes.
+    genes_end_pos : Numpy array
+        Array of ints representing the ending position of genes.
+    barriers_pos : Numpy array
+        Array of ints representing the position of barriers.
+    inversion_start : int
+        Position of the beginning of the inversion in the genome.
+    inversion_end : int
+        Position of the end of the inversion in the genome.
+    
+    Returns
+    -------
+    genes_start_pos : Numpy array
+        Updated value of genes_start_pos after inversion.
+    genes_end_pos : Numpy array
+        Updated value of genes_end_pos after inversion.
+    barriers_pos : Numpy array
+        Updated value of barriers_pos after inversion.
         
+    Notes
+    -----
+    inversion_start and inversion_end must not be inside a gene.
+    inversion_end must be greater than inversion_start.
+    """
+    
+    new_genes_start_pos = np.copy(genes_start_pos)
+    new_genes_end_pos = np.copy(genes_end_pos)
+    new_barriers_pos = np.copy(barriers_pos)
+    for new_array in [new_genes_start_pos, new_genes_end_pos,
+                      new_barriers_pos]:
+        for (k, position) in enumerate(new_array):
+            if (position > inversion_start) and (position < inversion_end):
+                new_array[k] = inversion_start + (inversion_end - position)
+    return (new_genes_start_pos, new_genes_end_pos, new_barriers_pos)
+                
+    
 def parse_namefile_ini(u):
     """ parse an [INPUTS] line u from a .ini file to get the seeked file location  """
     u = u.split(" ")[2] # get the address of the file of interest
@@ -153,3 +197,4 @@ print (TARGET_FREQS)
 initial_expression = expression_simulation("params.ini", "out.txt")
 print(initial_expression)
 print(compute_fitness(initial_expression, TARGET_FREQS))
+print(genome_inversion(30000, start, end, barr, 2020, 13000))
