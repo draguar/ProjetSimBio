@@ -134,6 +134,31 @@ def parse_namefile_ini(u):
     u = u.rstrip() # removes the "\n" character at the end of the string
     return u
 
+def pos_out_from_pos_lists(genes_start_pos, genes_end_pos, barriers_pos):        
+    """Generates the list of postition intervals outside barriers and genes.
+    
+    Parameters
+    ----------
+    genes_start_pos : Numpy array
+        Array of ints representing the begining position of genes.
+    genes_end_pos : Numpy array
+        Array of ints representing the ending position of genes.
+    barriers_pos : Numpy array
+        Array of ints representing the position of barriers.
+    
+    Returns
+    -------
+    out_positions : Numpy array
+        2-D array of ints. Each line represents an open interval containing
+        no gene nor barrier.
+    """
+    
+    limits = np.sort(np.hstack((genes_start_pos, genes_end_pos, barriers_pos,
+                                barriers_pos)))
+    out_positions = np.array([limits[-1], limits[0]])
+    for k in range(1, len(limits)-1, 2):
+        out_positions = np.vstack((out_positions, [limits[k], limits[k+1]]))
+    return out_positions
 
 def pos_out_genes(file_ini):
     """" returns a list of open position intervals in the genome where there are not any genes
@@ -177,45 +202,8 @@ def pos_out_genes(file_ini):
     fbarr.close()
     
     ### list of open position intervals in the genome where there is not any gene
-    n = len(barr)
-    out = []
-    for i in range(n-1):
-        # if we assume that the topological barriers position will always be smaller than the start and end position of its corresponding gene
-        interval_a = [barr[i], min(start[i], end[i])] # interval between a topological barrier position and the min(start, end) position of the gene
-        out.append(interval_a)
-        interval_b = [ max(start[i], end[i]), barr[i+1]] # interval between the max(start, end) position of the gene and the next topological barrier position
-        out.append(interval_b)
-    out.append([barr[n-1], min(start[n-1], end[n-1])])
-    out.append([max(start[n-1], end[n-1]), barr[0]]) # because the genome is circular : interval between the min(start, end) position of the last gene and the first topological barrier
-    
+    out = pos_out_from_pos_lists(start, end, barr)
     return start, end, barr, out
-
-
-def pos_out_from_pos_lists(genes_start_pos, genes_end_pos, barriers_pos):        
-    """Generates the list of postition intervals outside barriers and genes.
-    
-    Parameters
-    ----------
-    genes_start_pos : Numpy array
-        Array of ints representing the begining position of genes.
-    genes_end_pos : Numpy array
-        Array of ints representing the ending position of genes.
-    barriers_pos : Numpy array
-        Array of ints representing the position of barriers.
-    
-    Returns
-    -------
-    out_positions : Numpy array
-        2-D array of ints. Each line represents an open interval containing
-        no gene nor barrier.
-    """
-    
-    limits = np.sort(np.hstack((genes_start_pos, genes_end_pos, barriers_pos,
-                                barriers_pos)))
-    out_positions = np.array([limits[-1], limits[0]])
-    for k in range(1, len(limits)-1, 2):
-        out_positions = np.vstack((out_positions, [limits[k], limits[k+1]]))
-    return out_positions
     
     
 
