@@ -146,6 +146,67 @@ def pos_out_genes(file_ini):
     
     return start, end, barr, out
 
+def sample(out, Ngen):
+    """ samples a location from a given list of intervals
+    
+    Parameters
+    ----------
+    out : Python list
+        listof the open position intervals in the genome where there are not any genes   
+    Ngen : int
+        the length of the genome
+        
+    Returns
+    -------
+    mut_pos : int
+        sampled location of the mutation
+    
+    """
+    ### samples the interval where the exact location of the mutation
+    ## for each interval, calculates the probability to sample from it
+    N = 0 # total length of the intervals
+    intlen = [] # list of the cummulative length of each intervals
+    for x in out:
+        a = x[0] # left bound of the interval x
+        b = x[1] # right boud of x
+        if a>b:
+            print("yes")
+            # then x is the last interval of the plasmid with b after the first position of the genome
+            xlen = abs(Ngen - a + b - 1)
+            #intlen.append(xlen)
+            N += xlen
+            intlen.append(N)
+        else:
+            xlen = b-a-1 # length of the interval
+            #intlen.append(xlen)
+            N += xlen
+            intlen.append(N)
+            print(xlen)
+    probas = np.array(intlen)/N # list of the cummulative probabilities to sample in each interval
+    ## samples the interval
+    p = np.random.uniform(0,1) # draw a random number between 0 and 1
+    sint = min(np.where(p<probas)[0]) # index of the sampled interval
+    
+    ### samples the exact location of the mutation
+    a = out[sint][0]
+    b = out[sint][1]
+    if a>b:
+        # then the selected interval is the last interval of the plasmid with b after the first position of the genome
+        mut_pos = np.random.randint(a+1, Ngen+b) # samples the location of the mutation
+        if mut_pos > Ngen:
+            # then the sampled position is locater after the first position of the plasmid
+        mut_pos = mut_pos - Ngen
+    else:
+        mut_pos = np.random.randint(a+1, b) # samples the location of the mutation
+    
+    return mut_pos
+        
+
+
+def indel(u):
+    """ deletes or inserts in the plasmid a unit of length u of nucleotides """
+
+
 
 start, end, barr, out = pos_out_genes("params.ini")
 TARGET_FREQS = target_expression("environment.dat")
