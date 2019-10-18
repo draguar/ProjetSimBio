@@ -191,6 +191,34 @@ def pos_out_genes(file_ini):
     return start, end, barr, out
 
 
+def pos_out_from_pos_lists(genes_start_pos, genes_end_pos, barriers_pos):        
+    """Generates the list of postition intervals outside barriers and genes.
+    
+    Parameters
+    ----------
+    genes_start_pos : Numpy array
+        Array of ints representing the begining position of genes.
+    genes_end_pos : Numpy array
+        Array of ints representing the ending position of genes.
+    barriers_pos : Numpy array
+        Array of ints representing the position of barriers.
+    
+    Returns
+    -------
+    out_positions : Numpy array
+        2-D array of ints. Each line represents an open interval containing
+        no gene nor barrier.
+    """
+    
+    limits = np.sort(np.hstack((genes_start_pos, genes_end_pos, barriers_pos,
+                                barriers_pos)))
+    out_positions = np.array([limits[-1], limits[0]])
+    for k in range(1, len(limits)-1, 2):
+        out_positions = np.vstack((out_positions, [limits[k], limits[k+1]]))
+    return out_positions
+    
+    
+
 start, end, barr, out = pos_out_genes("params.ini")
 TARGET_FREQS = target_expression("environment.dat")
 print (TARGET_FREQS)
@@ -198,3 +226,4 @@ initial_expression = expression_simulation("params.ini", "out.txt")
 print(initial_expression)
 print(compute_fitness(initial_expression, TARGET_FREQS))
 print(genome_inversion(30000, start, end, barr, 2020, 13000))
+print (pos_out_from_pos_lists(start, end, barr))
