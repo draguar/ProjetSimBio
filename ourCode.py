@@ -6,18 +6,90 @@ Ceci est un script temporaire.
 """
 import numpy as np
 import os
+import re
 
-#
-#os.system("python3 start_simulation.py params.ini > out.txt")
-#with open("out.txt", "r") as out:
-#    for line in out:
-#        print(line)
+def target_expression(environment_file):
+    """Get the target expression from given file.
+    
+    Parameters
+    ----------
+    environment_file : str
+        Path and name of the environment file (giving the target relative
+        expression levels)
+
+    Returns
+    -------
+    target_expresstion : Numpy array
+        Array of floats representing target relative expression level for each
+        gene.
+    """
+    with open(environment_file, "r") as environment:
+        target_exp = re.findall("[0-9]+\s+([0-9\.]+)", environment.read())
+    return np.asarray(target_exp, dtype=float)
+
+
+def expression_simulation(params_file, out_file):
+    """Run  the expression  simulation with given parameters.
+    
+    Parameters
+    ----------
+    params_file : str
+        Path and name of the parameters file.
+    out_file : str
+        Path and name of the output file.
+        
+    Returns
+    -------
+    transcript_numbers : Numpy array
+        Array of ints representing the number of transcripts  for each gene,
+        ordered by gene ID.
+        
+    Note
+    ----
+    Also generate a text file with the given out_file name.
+    """
+    
+    term_command = ("python3 start_simulation.py " + params_file + " > "
+                    + out_file)
+    os.system(term_command)
+    with open(out_file, "r") as out:
+        transcript_nbs = re.findall("Transcript ID [0-9]+ : ([0-9]+)",
+                                    out.read())
+    return np.asarray(transcript_nbs, dtype=int)
+
+
+def compute_fitness(observed_transcript_numbers, target_frequencies):
+    """Compute the fitness of an individual with given gene expression pattern
+    in given environment.
+    
+    Parameters
+    ----------
+    observed_transcript_numbers : Numpy array
+        Array of ints representing the observed number of transcripts for each
+        gene of the invidual.
+    target_frequencies : Numpy array
+        Array of floats representing target relative expression level for each
+        gene (environment).
+    
+    Returns
+    -------
+    fitnness : float
+        computed fitness of the invidual, following the formula:
+            fitness = exp(-sum(|ln(observed_for_gene_i / target_for_gene_i)|))
+    """
+    
+    observed_frequencies = (observed_transcript_numbers
+                            / np.sum(observed_transcript_numbers))
+    ln_freqs = np.log(observed_frequencies / target_frequencies)
+    return np.exp(-np.sum(np.abs(ln_freqs)))
+
         
 def parse_namefile_ini(u):
     """ parse an [INPUTS] line u from a .ini file to get the seeked file location  """
     u = u.split(" ")[2] # get the address of the file of interest
     u = u.rstrip() # removes the "\n" character at the end of the string
     return u
+
 
 def pos_out_genes(file_ini):
     """" returns a list of open position intervals in the genome where there are not any genes
@@ -73,4 +145,11 @@ def pos_out_genes(file_ini):
     out.append([max(start[n-1], end[n-1]), barr[0]]) # because the genome is circular : interval between the min(start, end) position of the last gene and the first topological barrier
     
     return start, end, barr, out
+
+
 start, end, barr, out = pos_out_genes("params.ini")
+TARGET_FREQS = target_expression("environment.dat")
+print (TARGET_FREQS)
+initial_expression = expression_simulation("params.ini", "out.txt")
+print(initial_expression)
+print(compute_fitness(initial_expression, TARGET_FREQS))
