@@ -134,6 +134,7 @@ def parse_namefile_ini(u):
     u = u.rstrip() # removes the "\n" character at the end of the string
     return u
 
+
 def pos_out_from_pos_lists(genes_start_pos, genes_end_pos, barriers_pos):        
     """Generates the list of postition intervals outside barriers and genes.
     
@@ -159,6 +160,7 @@ def pos_out_from_pos_lists(genes_start_pos, genes_end_pos, barriers_pos):
     for k in range(1, len(limits)-1, 2):
         out_positions = np.vstack((out_positions, [limits[k], limits[k+1]]))
     return out_positions
+
 
 def pos_out_genes(file_ini):
     """" returns a list of open position intervals in the genome where there are not any genes
@@ -204,7 +206,6 @@ def pos_out_genes(file_ini):
     ### list of open position intervals in the genome where there is not any gene
     out = pos_out_from_pos_lists(start, end, barr)
     return start, end, barr, out
-<<<<<<< HEAD
 
 def sample(out, Ngen):
     """ samples a location from a given list of intervals
@@ -265,15 +266,57 @@ def sample(out, Ngen):
 
 def indel(u):
     """ deletes or inserts in the plasmid a unit of length u of nucleotides """
-
-
-=======
     
+
+def evolutive_event(inversion_proba, genome_size, genes_start_pos,
+                    genes_end_pos, barriers_pos, out_positions):
+    """Generate an evolutive event on given genome.
     
->>>>>>> 70b854cfaf013fd7b8ee599448c4cd76b38a933a
+    The event can either be a genome inversion (with proba inversion_proba),
+    or an indel.
+    
+<<<<<<< HEAD
+    Parameters
+    ----------
+    inversion_proba : float
+        Probability for the event to be an inversion.
+    genome_size : int
+        Genome size in base pair.
+    genes_start_pos : Numpy array
+        Array of ints representing the begining position of genes.
+    genes_end_pos : Numpy array
+        Array of ints representing the ending position of genes.
+    barriers_pos : Numpy array
+        Array of ints representing the position of barriers.
+    out_positions : Numpy array
+        2-D array of ints. Each line represents an open interval containing
+        no gene nor barrier.
+    Returns
+    -------
+    genes_start_pos : Numpy array
+        Updated value of genes_start_pos after the event.
+    genes_end_pos : Numpy array
+        Updated value of genes_end_pos after the event.
+    barriers_pos : Numpy array
+        Updated value of barriers_pos after the event.
+    """
+    
+    event_position = sample(out_positions, genome_size)
+    if np.random.rand() < inversion_proba:
+        # The event will be an inversion
+        event_position2 = sample(out_positions)
+        return genome_inversion(genome_size, genes_start_pos, genes_end_pos,
+                                barriers_pos,  min(event_position,
+                                                   event_position2),
+                                max(event_position, event_position2))
+    else:
+        # APPEL FONCTION INDEL
+        return genes_start_pos, genes_end_pos, barriers_pos
+        
 
 start, end, barr, out = pos_out_genes("params.ini")
 TARGET_FREQS = target_expression("environment.dat")
+INVERSION_PROBA = 0.5 # Probability for an evolutive event to be an inversion.
 print (TARGET_FREQS)
 initial_expression = expression_simulation("params.ini", "out.txt")
 print(initial_expression)
