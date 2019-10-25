@@ -213,7 +213,7 @@ def sample(out, Ngen):
     Parameters
     ----------
     out : Python list
-        listof the open position intervals in the genome where there are not any genes   
+        list of the open position intervals in the genome where there are not any genes   
     Ngen : int
         the length of the genome
         
@@ -231,18 +231,14 @@ def sample(out, Ngen):
         a = x[0] # left bound of the interval x
         b = x[1] # right boud of x
         if a>b:
-            print("yes")
             # then x is the last interval of the plasmid with b after the first position of the genome
             xlen = abs(Ngen - a + b - 1)
-            #intlen.append(xlen)
             N += xlen
             intlen.append(N)
         else:
             xlen = b-a-1 # length of the interval
-            #intlen.append(xlen)
             N += xlen
             intlen.append(N)
-            print(xlen)
     probas = np.array(intlen)/N # list of the cummulative probabilities to sample in each interval
     ## samples the interval
     p = np.random.uniform(0,1) # draw a random number between 0 and 1
@@ -264,16 +260,101 @@ def sample(out, Ngen):
         
 
 
-def indel(u):
-    """ deletes or inserts in the plasmid a unit of length u of nucleotides 
+def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos, out_positions):
+    """ deletes or inserts in the plasmid a unit length u of nucleotides 
+    
+    Parameters
+    ----------
+    u : int
+        unit of length of nucleotides that is deleted or inderted.
+    genome_size : int
+        Genome size in base pair.
+    genes_start_pos : Numpy array
+        Array of ints representing the begining position of genes.
+    genes_end_pos : Numpy array
+        Array of ints representing the ending position of genes.
+    barriers_pos : Numpy array
+        Array of ints representing the position of barriers.
+    out_positions : Numpy array
+        2-D array of ints. Each line represents an open interval containing
+        no gene nor barrier.
     
     """
-    ### samples the indel position
+    ### sample the indel position
+    indel_pos = 27613 #sample(out_positions, genome_size)
+    print(indel_pos)
+    
+    ### initialization of the new positions
+    new_genes_start_pos = np.copy(genes_start_pos)
+    new_genes_end_pos = np.copy(genes_end_pos)
+    new_barriers_pos = np.copy(barriers_pos)
     
     ### choose whether it is an insertion or a deletion
-    #p = np.random.uniform(0,1) # draw a random number between 0 and 1
-    #if p<.5:
-        # 
+    p = np.random.uniform(0,1) # draw a random number between 0 and 1
+    if p<.5:
+        # it is an insertion
+        print("insert")
+        for i in range( len(genes_start_pos) ):
+            if genes_start_pos[i] >= indel_pos :
+                # update gene start positions
+                new_genes_start_pos[i] += u
+            if genes_end_pos[i] >= indel_pos :
+                # update gene end positions
+                new_genes_end_pos[i] += u
+            if barriers_pos[i] >= indel_pos :
+                # update barrieres positions
+                new_barriers_pos[i] += u
+        # update genome size
+        genome_size += u
+        
+    else:
+        # it is a deletion
+        print("delete")
+        
+        ### check instead in the out list, create a dict of right interval bound : right interval bound - u_new (don't forget to check there is enough space to delete) then update start, end , barr accordingly
+        
+        ## find the intervals where the sampled mutation position is
+        found = dict({"start":0, "end":0, "barr":0}) # 
+        i=0
+        for i in range(len(genes_start_pos)-1):
+            print(i)
+            if genes_start_pos[i] <= indel_pos <= genes_start_pos[i+1]:
+                found["start"] = i+1
+            if genes_end_pos[i] <= indel_pos <= genes_end_pos[i+1]:
+                found["end"] = i+1
+            if barriers_pos[i] <= indel_pos <= barriers_pos[i+1]:
+                found["barr"] = i+1
+        print(found)
+        ## check whether there is enough space to delete u nucleotides
+        if found["barr"] == 0:
+            ## 
+        
+        if ( genes_start_pos[found["start"]] < (u+indel_pos) ) or ( genes_end_pos[found["end"]] < (u+indel_pos) ) or ( barriers_pos[found["barr"]] < (u+indel_pos) ):
+            # the sampled mutation position is located at a distance smaller than the unit length u
+            pos = 
+            new_u = min(abs(genes_start_pos[found["start"]]-indel_pos-u), abs(genes_end_pos[found["end"]]-indel_pos-u), abs(barriers_pos[found["barr"]]-indel_pos-u))
+            print(new_u)
+        else:
+            # the sampled mutation position is located at a distance greater or equal than the unit length u
+            new_u = u
+            print(new_u)
+        
+        for i in range( len(genes_start_pos) ):        
+            if genes_start_pos[i] >= indel_pos :
+                # update gene start positions
+                new_genes_start_pos[i] -= new_u
+            if genes_end_pos[i] >= indel_pos :
+                # update gene end positions
+                new_genes_end_pos[i] -= new_u
+            if barriers_pos[i] >= indel_pos :
+                # update barrieres positions
+                new_barriers_pos[i] -= new_u
+        # update genome size
+        genome_size -= new_u
+    
+    return new_genes_start_pos, new_genes_end_pos, new_barriers_pos
+        
+        
 
     
 
@@ -326,9 +407,10 @@ start, end, barr, out = pos_out_genes("params.ini")
 TARGET_FREQS = target_expression("environment.dat")
 INVERSION_PROBA = 0.5 # Probability for an evolutive event to be an inversion.
 print (TARGET_FREQS)
-initial_expression = expression_simulation("params.ini", "out.txt")
-print(initial_expression)
-print(compute_fitness(initial_expression, TARGET_FREQS))
-print(genome_inversion(30000, start, end, barr, 2020, 13000))
-print (pos_out_from_pos_lists(start, end, barr))
+#initial_expression = expression_simulation("params.ini", "out.txt")
+#print(initial_expression)
+#print(compute_fitness(initial_expression, TARGET_FREQS))
+#print(genome_inversion(30000, start, end, barr, 2020, 13000))
+#print (pos_out_from_pos_lists(start, end, barr))
 
+indel_start, indel_end, indel_barr = indel(60, 30000, start, end, barr, out)
