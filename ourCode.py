@@ -387,6 +387,7 @@ def update_files(genome_size, genes_start_pos, genes_end_pos, gff_file,
         new_tts.write(str(gene_index) + "\t" + orient + "\t" + str(end)
                       + "\t1.\n")    
 
+
 start, end, barr, out = pos_out_genes("params.ini")
 TARGET_FREQS = target_expression("environment.dat")
 INVERSION_PROBA = 0.5 # Probability for an evolutive event to be an inversion.
