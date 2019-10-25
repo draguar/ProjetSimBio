@@ -204,8 +204,8 @@ def pos_out_genes(file_ini):
     ### list of open position intervals in the genome where there is not any gene
     out = pos_out_from_pos_lists(start, end, barr)
     return start, end, barr, out
-<<<<<<< HEAD
 
+## ATTENTION INDENTATION
 def sample(out, Ngen):
     """ samples a location from a given list of intervals
     
@@ -255,7 +255,7 @@ def sample(out, Ngen):
         mut_pos = np.random.randint(a+1, Ngen+b) # samples the location of the mutation
         if mut_pos > Ngen:
             # then the sampled position is locater after the first position of the plasmid
-        mut_pos = mut_pos - Ngen
+            mut_pos = mut_pos - Ngen
     else:
         mut_pos = np.random.randint(a+1, b) # samples the location of the mutation
     
@@ -264,13 +264,16 @@ def sample(out, Ngen):
 
 
 def indel(u):
-    """ deletes or inserts in the plasmid a unit of length u of nucleotides """
-
-
-=======
+    """ deletes or inserts in the plasmid a unit of length u of nucleotides 
     
+    """
+    ### samples the indel position
     
->>>>>>> 70b854cfaf013fd7b8ee599448c4cd76b38a933a
+    ### choose whether it is an insertion or a deletion
+    #p = np.random.uniform(0,1) # draw a random number between 0 and 1
+    #if p<.5:
+        # 
+
 
 start, end, barr, out = pos_out_genes("params.ini")
 TARGET_FREQS = target_expression("environment.dat")
@@ -278,8 +281,6 @@ print (TARGET_FREQS)
 initial_expression = expression_simulation("params.ini", "out.txt")
 print(initial_expression)
 print(compute_fitness(initial_expression, TARGET_FREQS))
-<<<<<<< HEAD
-=======
 print(genome_inversion(30000, start, end, barr, 2020, 13000))
 print (pos_out_from_pos_lists(start, end, barr))
->>>>>>> 70b854cfaf013fd7b8ee599448c4cd76b38a933a
+
