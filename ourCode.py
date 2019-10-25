@@ -83,6 +83,7 @@ def compute_fitness(observed_transcript_numbers, target_frequencies):
     ln_freqs = np.log(observed_frequencies / target_frequencies)
     return np.exp(-np.sum(np.abs(ln_freqs)))
 
+
 def genome_inversion(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
                      inversion_start, inversion_end):        
     """Perform a genome innversion onn given genome at given positions..
@@ -321,6 +322,70 @@ def evolutive_event(inversion_proba, genome_size, genes_start_pos,
         # APPEL FONCTION INDEL
         return genes_start_pos, genes_end_pos, barriers_pos
         
+    
+def update_files(genome_size, genes_start_pos, genes_end_pos, gff_file,
+                 tss_file, tts_file):
+    """Write the initialization files for the transcription simulation.
+    
+    The event can either be a genome inversion (with proba inversion_proba),
+    or an indel.
+    
+    Parameters
+    ----------
+    genome_size : int
+        Genome size in base pair.
+    genes_start_pos : Numpy array
+        Array of ints representing the begining position of genes.
+    genes_end_pos : Numpy array
+        Array of ints representing the ending position of genes.
+    gff_file : str
+        Name of the .gff file (gene positions).
+    tss_file : str array
+        Name of the TSS file (gene start positions).
+    tts_file : str
+        Name of the TTS file (gene end positions).
+    Note
+    ----
+    Nothing is returned, but the files are created or updated.
+    """
+    
+    sequence_name = gff_file[:-4]
+    new_gff = open(gff_file, 'w')
+    new_tss = open(tss_file, 'w')
+    new_tts = open(tts_file, 'w')
+    ### Headers
+    new_gff.writelines(["##gff-version 3\n",
+                        "#!gff-spec-version 1.20\n",
+                        "#!processor NCBI annotwriter\n",
+                        "##sequence-region " + sequence_name + " 1 "
+                        + str(genome_size) + "\n",
+                        sequence_name + "\tRefSeq\tregion\t1\t"
+                        + str(genome_size) + "\t.\t+\t.\tID=id0;Name="
+                        + sequence_name + "\n"])
+    new_tss.write("TUindex\tTUorient\tTSS_pos\tTSS_strength\n")
+    new_tts.write("TUindex\tTUorient\tTTS_pos\tTTS_proba_off\n")
+    ### Body
+    for gene_index in range(len(genes_start_pos)):
+        start = genes_start_pos[gene_index]
+        end = genes_end_pos[gene_index]
+        size = end - start
+        if size > (genome_size / 2):
+            # Gene oriented "-" but crossing the origin
+            orient = "-"
+        elif size > 0:
+            orient = "+"
+        elif size > (-genome_size / 2):
+            orient = "-"
+        else:
+            # Gene oriented "+" but crossing the origin
+            orient = "+"
+        new_gff.write(sequence_name + "\tRefSeq\tgene\t" + str(start) + "\t"
+                      + str(end) + "\t.\t" + orient + "\t.\tID=g1;Name=g"
+                      + str(gene_index + 1) + "\n")
+        new_tss.write(str(gene_index) + "\t" + orient + "\t" + str(start)
+                      + "\t.2\n")
+        new_tts.write(str(gene_index) + "\t" + orient + "\t" + str(end)
+                      + "\t1.\n")    
 
 start, end, barr, out = pos_out_genes("params.ini")
 TARGET_FREQS = target_expression("environment.dat")
