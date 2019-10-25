@@ -83,6 +83,34 @@ def compute_fitness(observed_transcript_numbers, target_frequencies):
     ln_freqs = np.log(observed_frequencies / target_frequencies)
     return np.exp(-np.sum(np.abs(ln_freqs)))
 
+def accept_mutation(previous_fitness, new_fitness, q):
+    """Accept or reject the mutation, based on fitnesses comparison.
+    
+    A fitness increase is always accepted. A fitness loss is accepted with
+    a probability exp(fitness difference / q).
+    
+    Parameters
+    ----------
+    previous_fitness : float
+        Fitness of the previous generation (before mutation).
+    new_fitness : float
+        Fitness of the new generation (after mutation).
+    q : float
+        Parameters of the Monte Carlo Metropolis algorithm, controlling the
+        range of accepted fitness losses.
+        
+    Returns
+    -------
+    is_accepted : bool
+        True if the mutation is accepted, False else.
+    """
+    
+    fitness_diff = new_fitness - previous_fitness
+    if fitness_diff > 0:
+        return True
+    else:
+        return (np.random.rand() < np.exp(fitness_diff/q))
+
 
 def genome_inversion(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
                      inversion_start, inversion_end):        
