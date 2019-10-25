@@ -180,7 +180,7 @@ def pos_out_from_pos_lists(genes_start_pos, genes_end_pos, barriers_pos):
     -------
     out_positions : Numpy array
         2-D array of ints. Each line represents an open interval containing
-        no gene nor barrier.
+        no gene nor barrier.range
     """
     
     limits = np.sort(np.hstack((genes_start_pos, genes_end_pos, barriers_pos,
