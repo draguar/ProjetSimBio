@@ -323,8 +323,8 @@ def evolutive_event(inversion_proba, genome_size, genes_start_pos,
         return genes_start_pos, genes_end_pos, barriers_pos
         
     
-def update_files(genome_size, genes_start_pos, genes_end_pos, gff_file,
-                 tss_file, tts_file):
+def update_files(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
+                 gff_file, tss_file, tts_file, barr_file):
     """Write the initialization files for the transcription simulation.
     
     The event can either be a genome inversion (with proba inversion_proba),
@@ -338,21 +338,27 @@ def update_files(genome_size, genes_start_pos, genes_end_pos, gff_file,
         Array of ints representing the begining position of genes.
     genes_end_pos : Numpy array
         Array of ints representing the ending position of genes.
+    barriers_pos : Numpy array
+        Array of ints representing the position of barriers.
     gff_file : str
         Name of the .gff file (gene positions).
     tss_file : str array
         Name of the TSS file (gene start positions).
     tts_file : str
         Name of the TTS file (gene end positions).
+    barr_file : str
+        Name of the .dat file containing barrier positions
+        
     Note
     ----
     Nothing is returned, but the files are created or updated.
     """
     
     sequence_name = gff_file[:-4]
-    new_gff = open(gff_file, 'w')
-    new_tss = open(tss_file, 'w')
-    new_tts = open(tts_file, 'w')
+    new_gff = open(gff_file, "w")
+    new_tss = open(tss_file, "w")
+    new_tts = open(tts_file, "w")
+    new_barr = open(barr_file, "w")
     ### Headers
     new_gff.writelines(["##gff-version 3\n",
                         "#!gff-spec-version 1.20\n",
@@ -364,6 +370,7 @@ def update_files(genome_size, genes_start_pos, genes_end_pos, gff_file,
                         + sequence_name + "\n"])
     new_tss.write("TUindex\tTUorient\tTSS_pos\tTSS_strength\n")
     new_tts.write("TUindex\tTUorient\tTTS_pos\tTTS_proba_off\n")
+    new_barr.write("prot_name\tprot_pos\n")
     ### Body
     for gene_index in range(len(genes_start_pos)):
         start = genes_start_pos[gene_index]
@@ -385,7 +392,12 @@ def update_files(genome_size, genes_start_pos, genes_end_pos, gff_file,
         new_tss.write(str(gene_index) + "\t" + orient + "\t" + str(start)
                       + "\t.2\n")
         new_tts.write(str(gene_index) + "\t" + orient + "\t" + str(end)
-                      + "\t1.\n")    
+                      + "\t1.\n")
+    for barrier in barriers_pos:
+        new_barr.write("hns\t" +str(barrier) + "\n")
+    ### Close
+    for file in [new_gff, new_tss, new_tts, new_barr]:
+        file.close()
 
 
 start, end, barr, out = pos_out_genes("params.ini")
@@ -394,6 +406,7 @@ INVERSION_PROBA = 0.5 # Probability for an evolutive event to be an inversion.
 NEXT_GEN_GFF = "nextGen/nextGen.gff"
 NEXT_GEN_TSS = "nextGen/nextGenTSS.dat"
 NEXT_GEN_TTS = "nextGen/nextGenTTS.dat"
+NEXT_GEN_BARRIERS = "nexten/nextGenProt.dat"
 print (TARGET_FREQS)
 initial_expression = expression_simulation("params.ini", "out.txt")
 print(initial_expression)
