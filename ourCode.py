@@ -390,6 +390,9 @@ def update_files(genome_size, genes_start_pos, genes_end_pos, gff_file,
 start, end, barr, out = pos_out_genes("params.ini")
 TARGET_FREQS = target_expression("environment.dat")
 INVERSION_PROBA = 0.5 # Probability for an evolutive event to be an inversion.
+NEXT_GEN_GFF = "nextGen/nextGen.gff"
+NEXT_GEN_TSS = "nextGen/nextGenTSS.dat"
+NEXT_GEN_TTS = "nextGen/nextGenTTS.dat"
 print (TARGET_FREQS)
 initial_expression = expression_simulation("params.ini", "out.txt")
 print(initial_expression)
