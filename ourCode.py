@@ -598,7 +598,7 @@ NB_GENERATIONS = 30
 initial_expression = expression_simulation(INITIAL_PARAMETERS, "out.txt")
 previous_fitness = compute_fitness(initial_expression, TARGET_FREQS)
 start, end, barr, out, size = pos_out_genes(INITIAL_PARAMETERS)
-indel_start, indel_end, indel_barr = indel(60, 30000, start, end, barr, out)
+#indel_start, indel_end, indel_barr = indel(60, 30000, start, end, barr, out)
 
 all_fitnesses = []
 all_types = []
@@ -627,7 +627,4 @@ for generation in range(NB_GENERATIONS):
         out = pos_out_from_pos_lists(start, end, barr)
 
 plt.plot(all_fitnesses)
-
-
-
 
