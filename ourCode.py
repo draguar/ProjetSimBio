@@ -248,7 +248,7 @@ def pos_out_genes(file_ini):
     
     ### list of open position intervals in the genome where there is not any gene
     out = pos_out_from_pos_lists(start, end, barr)
-    return start, end, barr, out, Ngen
+    return start, end, barr, out, int(Ngen)
 
 def sample(out, Ngen):
     """ samples a location from a given list of intervals
@@ -274,7 +274,6 @@ def sample(out, Ngen):
         a = x[0] # left bound of the interval x
         b = x[1] # right boud of x
         if a>b:
-            print("yes")
             # then x is the last interval of the plasmid with b after the first position of the genome
             xlen = abs(Ngen - a + b - 1)
             #intlen.append(xlen)
@@ -285,7 +284,6 @@ def sample(out, Ngen):
             #intlen.append(xlen)
             N += xlen
             intlen.append(N)
-            print(xlen)
     probas = np.array(intlen)/N # list of the cummulative probabilities to sample in each interval
     ## samples the interval
     p = np.random.uniform(0,1) # draw a random number between 0 and 1
@@ -365,7 +363,8 @@ def evolutive_event(inversion_proba, genome_size, genes_start_pos,
                                 max(event_position, event_position2))
     else:
         # APPEL FONCTION INDEL
-        return "indel", genome_size, genes_start_pos, genes_end_pos, barriers_pos
+        return ("indel", genome_size, genes_start_pos, genes_end_pos,
+                barriers_pos)
         
     
 def update_files(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
@@ -451,29 +450,37 @@ NEXT_GEN_PARAMS = "params_nextGen.ini"
 NEXT_GEN_GFF = "nextGen/nextGen.gff"
 NEXT_GEN_TSS = "nextGen/nextGenTSS.dat"
 NEXT_GEN_TTS = "nextGen/nextGenTTS.dat"
-NEXT_GEN_BARRIERS = "nexten/nextGenProt.dat"
+NEXT_GEN_BARRIERS = "nextGen/nextGenProt.dat"
 NB_GENERATIONS = 30
 initial_expression = expression_simulation(INITIAL_PARAMETERS, "out.txt")
 previous_fitness = compute_fitness(initial_expression, TARGET_FREQS)
 start, end, barr, out, size = pos_out_genes(INITIAL_PARAMETERS)
 
 all_fitnesses = []
+all_types = []
 for generation in range(NB_GENERATIONS):
     # Random evolutive event
-    new_size, new_start, new_end, new_barr, new_pos = (
+    event_type, new_size, new_start, new_end, new_barr = (
             evolutive_event(INVERSION_PROBA, size, start, end, barr, out))
     # Update parameter files and run expression simulation.
     update_files(new_size, new_start, new_end, new_barr, NEXT_GEN_GFF,
                  NEXT_GEN_TSS, NEXT_GEN_TTS, NEXT_GEN_BARRIERS)
     new_expression = expression_simulation(NEXT_GEN_PARAMS, "out.txt")
     new_fitness = compute_fitness(new_expression, TARGET_FREQS)
+    # Keep track of each event
     all_fitnesses.append(new_fitness)
+    all_types.append(event_type)
     # Accept or reject the mutation.
-    if accept_mutation(previous_fitness, new_fitness,
-                       NB_GENERATIONS - generation):
+    print("Generation ", end="")
+    print(generation, end=":\n")
+    print(event_type + " event")
+    print("Fitness: ", end="")
+    print(new_fitness)
+    if accept_mutation(previous_fitness, new_fitness, 1/1000):
+        print("Accepted")
         previous_fitness = new_fitness
-        size = new_size
-        start, end, barr, out = new_start, new_end, new_barr, new_pos
+        size, start, end, barr, = new_size, new_start, new_end, new_barr
+        out = pos_out_from_pos_lists(start, end, barr)
 
 plt.plot(all_fitnesses)
         
