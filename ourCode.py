@@ -602,7 +602,6 @@ NB_GENERATIONS = 30
 initial_expression = expression_simulation(INITIAL_PARAMETERS, "out.txt")
 previous_fitness = compute_fitness(initial_expression, TARGET_FREQS)
 start, end, barr, out, size = pos_out_genes(INITIAL_PARAMETERS)
-indel_start, indel_end, indel_barr = indel(60, 30000, start, end, barr, out)
 
 all_fitnesses = [previous_fitness]
 all_types = ["initial"]
@@ -623,7 +622,8 @@ for generation in range(NB_GENERATIONS):
     print(event_type + " event")
     print("Fitness: ", end="")
     print(new_fitness)
-    if accept_mutation(previous_fitness, new_fitness, 1/10000):
+    q = (1 / 1000) * np.exp(- generation / 5)
+    if accept_mutation(previous_fitness, new_fitness, q):
         print("Accepted")
         previous_fitness = new_fitness
         size, start, end, barr, = new_size, new_start, new_end, new_barr
