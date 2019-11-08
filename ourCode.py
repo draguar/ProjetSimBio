@@ -83,6 +83,35 @@ def compute_fitness(observed_transcript_numbers, target_frequencies):
     ln_freqs = np.log(observed_frequencies / target_frequencies)
     return np.exp(-np.sum(np.abs(ln_freqs)))
 
+def accept_mutation(previous_fitness, new_fitness, q):
+    """Accept or reject the mutation, based on fitnesses comparison.
+    
+    A fitness increase is always accepted. A fitness loss is accepted with
+    a probability exp(fitness difference / q).
+    
+    Parameters
+    ----------
+    previous_fitness : float
+        Fitness of the previous generation (before mutation).
+    new_fitness : float
+        Fitness of the new generation (after mutation).
+    q : float
+        Parameters of the Monte Carlo Metropolis algorithm, controlling the
+        range of accepted fitness losses.
+        
+    Returns
+    -------
+    is_accepted : bool
+        True if the mutation is accepted, False else.
+    """
+    
+    fitness_diff = new_fitness - previous_fitness
+    if fitness_diff > 0:
+        return True
+    else:
+        return (np.random.rand() < np.exp(fitness_diff/q))
+
+
 def genome_inversion(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
                      inversion_start, inversion_end):        
     """Perform a genome innversion onn given genome at given positions..
@@ -151,7 +180,7 @@ def pos_out_from_pos_lists(genes_start_pos, genes_end_pos, barriers_pos):
     -------
     out_positions : Numpy array
         2-D array of ints. Each line represents an open interval containing
-        no gene nor barrier.
+        no gene nor barrier.range
     """
     
     limits = np.sort(np.hstack((genes_start_pos, genes_end_pos, barriers_pos,
@@ -462,10 +491,91 @@ def evolutive_event(inversion_proba, genome_size, genes_start_pos,
         # APPEL FONCTION INDEL
         return genes_start_pos, genes_end_pos, barriers_pos
         
+    
+def update_files(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
+                 gff_file, tss_file, tts_file, barr_file):
+    """Write the initialization files for the transcription simulation.
+    
+    The event can either be a genome inversion (with proba inversion_proba),
+    or an indel.
+    
+    Parameters
+    ----------
+    genome_size : int
+        Genome size in base pair.
+    genes_start_pos : Numpy array
+        Array of ints representing the begining position of genes.
+    genes_end_pos : Numpy array
+        Array of ints representing the ending position of genes.
+    barriers_pos : Numpy array
+        Array of ints representing the position of barriers.
+    gff_file : str
+        Name of the .gff file (gene positions).
+    tss_file : str array
+        Name of the TSS file (gene start positions).
+    tts_file : str
+        Name of the TTS file (gene end positions).
+    barr_file : str
+        Name of the .dat file containing barrier positions
+        
+    Note
+    ----
+    Nothing is returned, but the files are created or updated.
+    """
+    
+    sequence_name = gff_file[:-4]
+    new_gff = open(gff_file, "w")
+    new_tss = open(tss_file, "w")
+    new_tts = open(tts_file, "w")
+    new_barr = open(barr_file, "w")
+    ### Headers
+    new_gff.writelines(["##gff-version 3\n",
+                        "#!gff-spec-version 1.20\n",
+                        "#!processor NCBI annotwriter\n",
+                        "##sequence-region " + sequence_name + " 1 "
+                        + str(genome_size) + "\n",
+                        sequence_name + "\tRefSeq\tregion\t1\t"
+                        + str(genome_size) + "\t.\t+\t.\tID=id0;Name="
+                        + sequence_name + "\n"])
+    new_tss.write("TUindex\tTUorient\tTSS_pos\tTSS_strength\n")
+    new_tts.write("TUindex\tTUorient\tTTS_pos\tTTS_proba_off\n")
+    new_barr.write("prot_name\tprot_pos\n")
+    ### Body
+    for gene_index in range(len(genes_start_pos)):
+        start = genes_start_pos[gene_index]
+        end = genes_end_pos[gene_index]
+        size = end - start
+        if size > (genome_size / 2):
+            # Gene oriented "-" but crossing the origin
+            orient = "-"
+        elif size > 0:
+            orient = "+"
+        elif size > (-genome_size / 2):
+            orient = "-"
+        else:
+            # Gene oriented "+" but crossing the origin
+            orient = "+"
+        new_gff.write(sequence_name + "\tRefSeq\tgene\t" + str(start) + "\t"
+                      + str(end) + "\t.\t" + orient + "\t.\tID=g1;Name=g"
+                      + str(gene_index + 1) + "\n")
+        new_tss.write(str(gene_index) + "\t" + orient + "\t" + str(start)
+                      + "\t.2\n")
+        new_tts.write(str(gene_index) + "\t" + orient + "\t" + str(end)
+                      + "\t1.\n")
+    for barrier in barriers_pos:
+        new_barr.write("hns\t" +str(barrier) + "\n")
+    ### Close
+    for file in [new_gff, new_tss, new_tts, new_barr]:
+        file.close()
+
 
 start, end, barr, out = pos_out_genes("params.ini")
 TARGET_FREQS = target_expression("environment.dat")
 INVERSION_PROBA = 0.5 # Probability for an evolutive event to be an inversion.
+NEXT_GEN_GFF = "nextGen/nextGen.gff"
+NEXT_GEN_TSS = "nextGen/nextGenTSS.dat"
+NEXT_GEN_TTS = "nextGen/nextGenTTS.dat"
+NEXT_GEN_BARRIERS = "nexten/nextGenProt.dat"
 print (TARGET_FREQS)
 #initial_expression = expression_simulation("params.ini", "out.txt")
 #print(initial_expression)
