@@ -207,8 +207,9 @@ def pos_out_genes(file_ini):
     out = pos_out_from_pos_lists(start, end, barr)
     return start, end, barr, out
 
-def sample(out, Ngen):
-    """ samples a location from a given list of intervals
+def sample(out, Ngen, u):
+    """ samples a location from a given list of intervals that satisfies the "distance to bounds condition" 
+    (there is at least u nucleotides between the right and left bound and the sampled mutation position)
     
     Parameters
     ----------
@@ -216,6 +217,8 @@ def sample(out, Ngen):
         list of the open position intervals in the genome where there are not any genes   
     Ngen : int
         the length of the genome
+    u : int
+        unit of length of nucleotides.
         
     Returns
     -------
@@ -223,38 +226,61 @@ def sample(out, Ngen):
         sampled location of the mutation
     
     """
-    ### samples the interval where the exact location of the mutation
-    ## for each interval, calculates the probability to sample from it
-    N = 0 # total length of the intervals
-    intlen = [] # list of the cummulative length of each intervals
-    for x in out:
-        a = x[0] # left bound of the interval x
-        b = x[1] # right boud of x
-        if a>b:
-            # then x is the last interval of the plasmid with b after the first position of the genome
-            xlen = abs(Ngen - a + b - 1)
-            N += xlen
-            intlen.append(N)
-        else:
-            xlen = b-a-1 # length of the interval
-            N += xlen
-            intlen.append(N)
-    probas = np.array(intlen)/N # list of the cummulative probabilities to sample in each interval
-    ## samples the interval
-    p = np.random.uniform(0,1) # draw a random number between 0 and 1
-    sint = min(np.where(p<probas)[0]) # index of the sampled interval
+    space = False # boolean used to make sure there is enough space between the right and left bound and the sampled mutation position
+    i=100 # max number of iterations
     
-    ### samples the exact location of the mutation
-    a = out[sint][0]
-    b = out[sint][1]
-    if a>b:
-        # then the selected interval is the last interval of the plasmid with b after the first position of the genome
-        mut_pos = np.random.randint(a+1, Ngen+b) # samples the location of the mutation
-        if mut_pos > Ngen:
-            # then the sampled position is locater after the first position of the plasmid
-            mut_pos = mut_pos - Ngen
-    else:
-        mut_pos = np.random.randint(a+1, b) # samples the location of the mutation
+    while (not space):
+        # we repeat until we find a mutation position that satisfies the distance to the bounds condition
+        # or until we have repeated this loop a 100 times
+        print(i)
+        ### samples the interval where the exact location of the mutation
+        ## for each interval, calculates the probability to sample from it
+        N = 0 # total length of the intervals
+        intlen = [] # list of the cummulative length of each intervals
+        for x in out:
+            a = x[0] # left bound of the interval xout_positions[i][1]
+            b = x[1] # right boud of x
+            if a>b:
+                # then x is the last interval of the plasmid with b after the first position of the genome
+                xlen = abs(Ngen - a + b - 1)
+                N += xlen
+                intlen.append(N)
+            else:
+                xlen = b-a-1 # length of the interval
+                N += xlen
+                intlen.append(N)
+        probas = np.array(intlen)/N # list of the cummulative probabilities to sample in each interval
+        ## samples the interval
+        p = np.random.uniform(0,1) # draw a random number between 0 and 1
+        sint = min(np.where(p<probas)[0]) # index of the sampled interval
+    
+        ### samples the exact location of the mutation
+        a = out[sint][0]
+        b = out[sint][1]
+
+        if a>b:
+            # then the selected interval is the last interval of the plasmid with b after the first position of the genome
+            mut_pos = np.random.randint(a+1, Ngen+b) # samples the location of the mutation
+            if mut_pos > Ngen:
+                # then the sampled position is located after the first position of the plasmid
+                
+                if (mut_pos <= Ngen + out[sint][1] - u) and (mut_pos >= out[sint][0] + u):
+                    # there is enough space between the right and left bound and the sampled mutation position
+                    space = True
+                    mut_pos = mut_pos - Ngen
+                   
+        else:
+            mut_pos = np.random.randint(a+1, b) # samples the location of the mutation
+            if (mut_pos <= out[sint][1] - u) and (mut_pos >= out[sint][0] + u):
+                # there is enough space between the right and left bound and the sampled mutation position
+                space = True
+            
+            
+        print(i, " ", mut_pos)
+        
+        i-=1
+        if i==0:
+            raise RuntimeError("A mutation position that that satisfies the distance to the bounds condition was not found")
     
     return mut_pos
         
@@ -266,7 +292,7 @@ def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos, out_posi
     Parameters
     ----------
     u : int
-        unit of length of nucleotides that is deleted or inderted.
+        unit of length of nucleotides that is deleted or inserted.
     genome_size : int
         Genome size in base pair.
     genes_start_pos : Numpy array
@@ -278,6 +304,17 @@ def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos, out_posi
     out_positions : Numpy array
         2-D array of ints. Each line represents an open interval containing
         no gene nor barrier.
+        
+    Returns
+    -------
+    new_genes_start_pos : Numpy array
+        Updated value of genes_start_pos after inversion.
+    new_genes_end_pos : Numpy array
+        Updated value of genes_end_pos after inversion.
+    new_barriers_pos : Numpy array
+        Updated value of barriers_pos after inversion.
+    genome_size: int
+        Updated value of the genome size
     
     """
     ### sample the indel position
@@ -314,45 +351,68 @@ def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos, out_posi
         ### check instead in the out list, create a dict of right interval bound : right interval bound - u_new (don't forget to check there is enough space to delete) then update start, end , barr accordingly
         
         ## find the intervals where the sampled mutation position is
-        found = dict({"start":0, "end":0, "barr":0}) # 
-        i=0
-        for i in range(len(genes_start_pos)-1):
-            print(i)
-            if genes_start_pos[i] <= indel_pos <= genes_start_pos[i+1]:
-                found["start"] = i+1
-            if genes_end_pos[i] <= indel_pos <= genes_end_pos[i+1]:
-                found["end"] = i+1
-            if barriers_pos[i] <= indel_pos <= barriers_pos[i+1]:
-                found["barr"] = i+1
-        print(found)
-        ## check whether there is enough space to delete u nucleotides
-        if found["barr"] == 0:
-            ## 
+#        right_bound = 0 # right bound of the interval where the mutation position is
+#        i=0
+#        for i in range(len(out_positions)):
+#            print(i)
+#            if out_positions[i][0] <= out_positions[i][1]:
+#                # then this is not the last interval
+#                if out_positions[i][0] <= indel_pos <= out_positions[i][1]:
+#                    right_bound = out_positions[i][1]-1
+#            else:
+#                # this is the last interval and out_positions[i][1] is after the first position in the genome
+#                if (out_positions[i][0] <= indel_pos <= genome_size) or (1 <= indel_pos <= out_positions[i][1]):
+#                    right_bound = out_positions[i][1]-1
+                    
+#        if right_bound < (u+indel_pos):
+#            # the sampled mutation position is located at a distance smaller than the unit length u
+#            new_u = abs(right_bound - indel_pos)
+#            print(new_u)
+#        else:
+#            # the sampled mutation position is located at a distance greater or equal than the unit length u
+#            new_u = u
+#            print(new_u)
         
-        if ( genes_start_pos[found["start"]] < (u+indel_pos) ) or ( genes_end_pos[found["end"]] < (u+indel_pos) ) or ( barriers_pos[found["barr"]] < (u+indel_pos) ):
-            # the sampled mutation position is located at a distance smaller than the unit length u
-            pos = 
-            new_u = min(abs(genes_start_pos[found["start"]]-indel_pos-u), abs(genes_end_pos[found["end"]]-indel_pos-u), abs(barriers_pos[found["barr"]]-indel_pos-u))
-            print(new_u)
-        else:
-            # the sampled mutation position is located at a distance greater or equal than the unit length u
-            new_u = u
-            print(new_u)
+        
+#        ## find the intervals where the sampled mutatileaveson position is
+#        found = dict({"start":0, "end":0, "barr":0}) # 
+#        i=0
+#        for i in range(len(genes_start_pos)-1):
+#            print(i)
+#            if genes_start_pos[i] <= indel_pos <= genes_start_pos[i+1]:
+#                found["start"] = i+1
+#            if genes_end_pos[i] <= indel_pos <= genes_end_pos[i+1]:
+#                found["end"] = i+1
+#            if barriers_pos[i] <= indel_pos <= barriers_pos[i+1]:
+#                found["barr"] = i+1
+#        print(found)
+        ## check whether there is enough space to delete u nucleotides
+        #if found["barr"] == 0:
+        
+#        if ( genes_start_pos[found["start"]] < (u+indel_pos) ) or ( genes_end_pos[found["end"]] < (u+indel_pos) ) or ( barriers_pos[found["barr"]] < (u+indel_pos) ):
+#            # the sampled mutation position is located at a distance smaller than the unit length u
+#            #pos = 
+#            new_u = min(abs(genes_start_pos[found["start"]]-indel_pos-u), abs(genes_end_pos[found["end"]]-indel_pos-u), abs(barriers_pos[found["barr"]]-indel_pos-u))
+#            print(new_u)
+#        else:
+#            # the sampled mutation position is located at a distance greater or equal than the unit length u
+#            new_u = u
+#            print(new_u)
         
         for i in range( len(genes_start_pos) ):        
             if genes_start_pos[i] >= indel_pos :
                 # update gene start positions
-                new_genes_start_pos[i] -= new_u
+                new_genes_start_pos[i] -= u
             if genes_end_pos[i] >= indel_pos :
                 # update gene end positions
-                new_genes_end_pos[i] -= new_u
+                new_genes_end_pos[i] -= u
             if barriers_pos[i] >= indel_pos :
                 # update barrieres positions
-                new_barriers_pos[i] -= new_u
+                new_barriers_pos[i] -= u
         # update genome size
-        genome_size -= new_u
+        genome_size -= u
     
-    return new_genes_start_pos, new_genes_end_pos, new_barriers_pos
+    return new_genes_start_pos, new_genes_end_pos, new_barriers_pos, genome_size
         
         
 
