@@ -7,6 +7,7 @@ Ceci est un script temporaire.
 import numpy as np
 import os
 import re
+import matplotlib.pyplot as plt
 
 def target_expression(environment_file):
     """Get the target expression from given file.
@@ -133,6 +134,8 @@ def genome_inversion(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
     
     Returns
     -------
+    genome_size : int
+        Unchanged value of genome_size.
     genes_start_pos : Numpy array
         Updated value of genes_start_pos after inversion.
     genes_end_pos : Numpy array
@@ -154,7 +157,8 @@ def genome_inversion(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
         for (k, position) in enumerate(new_array):
             if (position > inversion_start) and (position < inversion_end):
                 new_array[k] = inversion_start + (inversion_end - position)
-    return (new_genes_start_pos, new_genes_end_pos, new_barriers_pos)
+    return (genome_size, new_genes_start_pos, new_genes_end_pos,
+            new_barriers_pos)
                 
     
 def parse_namefile_ini(u):
@@ -196,10 +200,17 @@ def pos_out_genes(file_ini):
     with file_ini is the initialization file """
     f = open(file_ini, 'r')
     f_lines = f.readlines() # list of the file_ini lines
+    file_gff = parse_namefile_ini(f_lines[1]) # GFFF file address
     file_tss = parse_namefile_ini(f_lines[2]) # TSS file address
     file_tts = parse_namefile_ini(f_lines[3])# TTS file address
     file_barr = parse_namefile_ini(f_lines[4]) # prot.dat file address
     
+    ## genome size
+    fgff = open(file_gff, 'r')
+    fgff_content = fgff.read() # list of the file_gff lines
+    Ngen = re.findall("##sequence-region .* 1 ([0-9]+)", fgff_content)[0]
+    print(Ngen)
+                      
     ## list of transcription start position
     ftss = open(file_tss, 'r')
     ftss_lines = ftss.readlines() # list of the file_tss lines
@@ -228,13 +239,14 @@ def pos_out_genes(file_ini):
     print(barr)
     
     f.close()
+    fgff.close()
     ftss.close()
     ftts.close()
     fbarr.close()
     
     ### list of open position intervals in the genome where there is not any gene
     out = pos_out_from_pos_lists(start, end, barr)
-    return start, end, barr, out
+    return start, end, barr, out, Ngen
 
 def sample(out, Ngen):
     """ samples a location from a given list of intervals
@@ -330,12 +342,15 @@ def evolutive_event(inversion_proba, genome_size, genes_start_pos,
         no gene nor barrier.
     Returns
     -------
+    genome_size : ine
+        Updated value of genome_size after the event.
     genes_start_pos : Numpy array
         Updated value of genes_start_pos after the event.
     genes_end_pos : Numpy array
         Updated value of genes_end_pos after the event.
     barriers_pos : Numpy array
         Updated value of barriers_pos after the event.
+    
     """
     
     event_position = sample(out_positions, genome_size)
@@ -348,7 +363,7 @@ def evolutive_event(inversion_proba, genome_size, genes_start_pos,
                                 max(event_position, event_position2))
     else:
         # APPEL FONCTION INDEL
-        return genes_start_pos, genes_end_pos, barriers_pos
+        return genome_size, genes_start_pos, genes_end_pos, barriers_pos
         
     
 def update_files(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
@@ -427,18 +442,42 @@ def update_files(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
     for file in [new_gff, new_tss, new_tts, new_barr]:
         file.close()
 
-
-start, end, barr, out = pos_out_genes("params.ini")
+INITIAL_PARAMETERS = "params.ini"
 TARGET_FREQS = target_expression("environment.dat")
 INVERSION_PROBA = 0.5 # Probability for an evolutive event to be an inversion.
+NEXT_GEN_PARAMS = "params_nextGen.ini"
 NEXT_GEN_GFF = "nextGen/nextGen.gff"
 NEXT_GEN_TSS = "nextGen/nextGenTSS.dat"
 NEXT_GEN_TTS = "nextGen/nextGenTTS.dat"
 NEXT_GEN_BARRIERS = "nexten/nextGenProt.dat"
-print (TARGET_FREQS)
-initial_expression = expression_simulation("params.ini", "out.txt")
-print(initial_expression)
-print(compute_fitness(initial_expression, TARGET_FREQS))
-print(genome_inversion(30000, start, end, barr, 2020, 13000))
-print (pos_out_from_pos_lists(start, end, barr))
+NB_GENERATIONS = 30
+initial_expression = expression_simulation(INITIAL_PARAMETERS, "out.txt")
+previous_fitness = compute_fitness(initial_expression, TARGET_FREQS)
+start, end, barr, out, size = pos_out_genes(INITIAL_PARAMETERS)
+
+all_fitnesses = []
+for generation in range(NB_GENERATIONS):
+    # Random evolutive event
+    new_size, new_start, new_end, new_barr, new_pos = (
+            evolutive_event(INVERSION_PROBA, size, start, end, barr, out))
+    # Update parameter files and run expression simulation.
+    update_files(new_size, new_start, new_end, new_barr, NEXT_GEN_GFF,
+                 NEXT_GEN_TSS, NEXT_GEN_TTS, NEXT_GEN_BARRIERS)
+    new_expression = expression_simulation(NEXT_GEN_PARAMS, "out.txt")
+    new_fitness = compute_fitness(new_expression, TARGET_FREQS)
+    all_fitnesses.append(new_fitness)
+    # Accept or reject the mutation.
+    if accept_mutation(previous_fitness, new_fitness,
+                       NB_GENERATIONS - generation):
+        previous_fitness = new_fitness
+        size = new_size
+        start, end, barr, out = new_start, new_end, new_barr, new_pos
+
+plt.plot(all_fitnesses)
+        
+
+    
+    
+    
+    
 
