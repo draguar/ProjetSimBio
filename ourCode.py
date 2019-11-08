@@ -275,7 +275,7 @@ def sample(out, Ngen, u):
     while (not space):
         # we repeat until we find a mutation position that satisfies the distance to the bounds condition
         # or until we have repeated this loop a 100 times
-        print(i)
+        #print(i)
         ### samples the interval where the exact location of the mutation
         ## for each interval, calculates the probability to sample from it
         N = 0 # total length of the intervals
@@ -319,7 +319,7 @@ def sample(out, Ngen, u):
                 space = True
             
             
-        print(i, " ", mut_pos)
+        #print(i, " ", mut_pos)
         
         i-=1
         if i==0:
@@ -329,7 +329,7 @@ def sample(out, Ngen, u):
         
 
 
-def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos, out_positions):
+def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos):
     """ deletes or inserts in the plasmid a unit length u of nucleotides 
     
     Parameters
@@ -344,12 +344,11 @@ def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos, out_posi
         Array of ints representing the ending position of genes.
     barriers_pos : Numpy array
         Array of ints representing the position of barriers.
-    out_positions : Numpy array
-        2-D array of ints. Each line represents an open interval containing
-        no gene nor barrier.
         
     Returns
     -------
+    event_type : str
+        Equal to "insertion" or "deletion"
     new_genes_start_pos : Numpy array
         Updated value of genes_start_pos after inversion.
     new_genes_end_pos : Numpy array
@@ -362,7 +361,7 @@ def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos, out_posi
     """
     ### sample the indel position
     indel_pos = 27613 #sample(out_positions, genome_size)
-    print(indel_pos)
+    #print(indel_pos)
     
     ### initialization of the new positions
     new_genes_start_pos = np.copy(genes_start_pos)
@@ -373,7 +372,8 @@ def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos, out_posi
     p = np.random.uniform(0,1) # draw a random number between 0 and 1
     if p<.5:
         # it is an insertion
-        print("insert")
+        #print("insert")
+        event_type = "insertion"
         for i in range( len(genes_start_pos) ):
             if genes_start_pos[i] >= indel_pos :
                 # update gene start positions
@@ -389,7 +389,8 @@ def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos, out_posi
         
     else:
         # it is a deletion
-        print("delete")
+        event_type = "deletion"
+        #print("delete")
         
         ### check instead in the out list, create a dict of right interval bound : right interval bound - u_new (don't forget to check there is enough space to delete) then update start, end , barr accordingly
         
@@ -455,14 +456,16 @@ def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos, out_posi
         # update genome size
         genome_size -= u
     
-    return new_genes_start_pos, new_genes_end_pos, new_barriers_pos, genome_size
+    return (event_type, genome_size, new_genes_start_pos, new_genes_end_pos,
+            new_barriers_pos)
         
         
 
     
 
-def evolutive_event(inversion_proba, genome_size, genes_start_pos,
-                    genes_end_pos, barriers_pos, out_positions):
+def evolutive_event(DISCRET_STEP, inversion_proba, genome_size,
+                    genes_start_pos, genes_end_pos, barriers_pos,
+                    out_positions):
     """Generate an evolutive event on given genome.
     
     The event can either be a genome inversion (with proba inversion_proba),
@@ -496,18 +499,18 @@ def evolutive_event(inversion_proba, genome_size, genes_start_pos,
     
     """
     
-    event_position = sample(out_positions, genome_size)
+    event_position = sample(out_positions, genome_size, DISCRET_STEP)
     if np.random.rand() < inversion_proba:
         # The event will be an inversion
-        event_position2 = sample(out_positions, genome_size)
+        event_position2 = sample(out_positions, genome_size, DISCRET_STEP)
         return genome_inversion(genome_size, genes_start_pos, genes_end_pos,
                                 barriers_pos, min(event_position,
                                                   event_position2),
                                 max(event_position, event_position2))
     else:
         # APPEL FONCTION INDEL
-        return ("indel", genome_size, genes_start_pos, genes_end_pos,
-                barriers_pos)
+        return indel(DISCRET_STEP, genome_size, genes_start_pos, genes_end_pos,
+                     barriers_pos)
         
     
 def update_files(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
@@ -587,6 +590,7 @@ def update_files(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
         file.close()
 
 INITIAL_PARAMETERS = "params.ini"
+DISCRET_STEP = 60
 TARGET_FREQS = target_expression("environment.dat")
 INVERSION_PROBA = 0.5 # Probability for an evolutive event to be an inversion.
 NEXT_GEN_PARAMS = "params_nextGen.ini"
@@ -599,31 +603,34 @@ initial_expression = expression_simulation(INITIAL_PARAMETERS, "out.txt")
 previous_fitness = compute_fitness(initial_expression, TARGET_FREQS)
 start, end, barr, out, size = pos_out_genes(INITIAL_PARAMETERS)
 
-all_fitnesses = []
-all_types = []
+all_fitnesses = [previous_fitness]
+all_types = ["initial"]
 for generation in range(NB_GENERATIONS):
     # Random evolutive event
     event_type, new_size, new_start, new_end, new_barr = (
-            evolutive_event(INVERSION_PROBA, size, start, end, barr, out))
+            evolutive_event(DISCRET_STEP, INVERSION_PROBA, size, start, end,
+                            barr, out))
     # Update parameter files and run expression simulation.
     update_files(new_size, new_start, new_end, new_barr, NEXT_GEN_GFF,
                  NEXT_GEN_TSS, NEXT_GEN_TTS, NEXT_GEN_BARRIERS)
     new_expression = expression_simulation(NEXT_GEN_PARAMS, "out.txt")
     new_fitness = compute_fitness(new_expression, TARGET_FREQS)
-    # Keep track of each event
-    all_fitnesses.append(new_fitness)
-    all_types.append(event_type)
+    
     # Accept or reject the mutation.
     print("Generation ", end="")
     print(generation, end=":\n")
     print(event_type + " event")
     print("Fitness: ", end="")
     print(new_fitness)
-    if accept_mutation(previous_fitness, new_fitness, 1/1000):
+    if accept_mutation(previous_fitness, new_fitness, 1/10000):
         print("Accepted")
         previous_fitness = new_fitness
         size, start, end, barr, = new_size, new_start, new_end, new_barr
         out = pos_out_from_pos_lists(start, end, barr)
+        
+    # Keep track of each event
+    all_fitnesses.append(previous_fitness)
+    all_types.append(event_type)
 
 plt.plot(all_fitnesses)
 
