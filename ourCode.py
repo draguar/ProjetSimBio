@@ -134,6 +134,8 @@ def genome_inversion(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
     
     Returns
     -------
+    event_type : str
+        Always equal to "inversion"
     genome_size : int
         Unchanged value of genome_size.
     genes_start_pos : Numpy array
@@ -157,7 +159,7 @@ def genome_inversion(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
         for (k, position) in enumerate(new_array):
             if (position > inversion_start) and (position < inversion_end):
                 new_array[k] = inversion_start + (inversion_end - position)
-    return (genome_size, new_genes_start_pos, new_genes_end_pos,
+    return ("inversion", genome_size, new_genes_start_pos, new_genes_end_pos,
             new_barriers_pos)
                 
     
@@ -356,14 +358,14 @@ def evolutive_event(inversion_proba, genome_size, genes_start_pos,
     event_position = sample(out_positions, genome_size)
     if np.random.rand() < inversion_proba:
         # The event will be an inversion
-        event_position2 = sample(out_positions)
+        event_position2 = sample(out_positions, genome_size)
         return genome_inversion(genome_size, genes_start_pos, genes_end_pos,
-                                barriers_pos,  min(event_position,
-                                                   event_position2),
+                                barriers_pos, min(event_position,
+                                                  event_position2),
                                 max(event_position, event_position2))
     else:
         # APPEL FONCTION INDEL
-        return genome_size, genes_start_pos, genes_end_pos, barriers_pos
+        return "indel", genome_size, genes_start_pos, genes_end_pos, barriers_pos
         
     
 def update_files(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
