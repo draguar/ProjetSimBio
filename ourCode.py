@@ -584,3 +584,4 @@ print (TARGET_FREQS)
 #print (pos_out_from_pos_lists(start, end, barr))
 
 indel_start, indel_end, indel_barr = indel(60, 30000, start, end, barr, out)
+
