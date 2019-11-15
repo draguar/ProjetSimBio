@@ -598,15 +598,19 @@ NEXT_GEN_GFF = "nextGen/nextGen.gff"
 NEXT_GEN_TSS = "nextGen/nextGenTSS.dat"
 NEXT_GEN_TTS = "nextGen/nextGenTTS.dat"
 NEXT_GEN_BARRIERS = "nextGen/nextGenProt.dat"
-NB_GENERATIONS = 30
+NB_GENERATIONS = 10
+COLORS = {"initial" : "black", "deletion" : "red", "insertion" : "green", "inversion" : "purple"}
 initial_expression = expression_simulation(INITIAL_PARAMETERS, "out.txt")
 previous_fitness = compute_fitness(initial_expression, TARGET_FREQS)
 start, end, barr, out, size = pos_out_genes(INITIAL_PARAMETERS)
 
 
-all_fitnesses = [previous_fitness]
+accepted_fitnesses = [previous_fitness]
+proposed_fitnesses = [previous_fitness]
 all_types = ["initial"]
-for generation in range(NB_GENERATIONS):
+accepted_status = ["accepted"]
+generation_numbers = range(NB_GENERATIONS+1)
+for generation in generation_numbers[1:]:
     # Random evolutive event
     event_type, new_size, new_start, new_end, new_barr = (
             evolutive_event(DISCRET_STEP, INVERSION_PROBA, size, start, end,
@@ -625,14 +629,26 @@ for generation in range(NB_GENERATIONS):
     print(new_fitness)
     q = (1 / 1000) * np.exp(- generation / 5)
     if accept_mutation(previous_fitness, new_fitness, q):
-        print("Accepted")
+        accepted_status.append("accepted")
         previous_fitness = new_fitness
         size, start, end, barr, = new_size, new_start, new_end, new_barr
         out = pos_out_from_pos_lists(start, end, barr)
+    else:
+        accepted_status.append("rejected")
         
     # Keep track of each event
-    all_fitnesses.append(previous_fitness)
+    accepted_fitnesses.append(previous_fitness)
+    proposed_fitnesses.append(new_fitness)
     all_types.append(event_type)
 
-plt.plot(all_fitnesses)
+#fig = plt.figure()
+#ax = fig.add_subplot(111)
+plt.ylim(.9*min(proposed_fitnesses), 1.1*max(accepted_fitnesses))
+plt.plot(accepted_fitnesses, linestyle="--", markersize=0, color="k", zorder=1)
+plt.scatter(generation_numbers, accepted_fitnesses, alpha=1,
+            c=[COLORS[event_type] for event_type in all_types], zorder=2)
+plt.scatter(generation_numbers, proposed_fitnesses, marker="+",
+            c=[COLORS[event_type] for event_type in all_types])
+
+plt.show()
 
