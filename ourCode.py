@@ -648,7 +648,7 @@ def evolution(start, end, barr, out, genome_size, initial_expression, previous_f
     accepted_status = ["accepted"]
     all_types = ["initial"]
     generation_numbers = range(NB_GENERATIONS+1)
-    for generation in generation_numbers:
+    for generation in generation_numbers[1:]:
         # Random evolutive event
         event_type, new_size, new_start, new_end, new_barr = (
                 evolutive_event(DISCRET_STEP, INVERSION_PROBA, genome_size, start, end,
