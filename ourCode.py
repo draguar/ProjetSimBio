@@ -348,7 +348,7 @@ def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos):
     Returns
     -------
     event_type : str
-        Equal to "insertion" or "deletion"
+        Equal to "insertion" or "deletion".
     new_genes_start_pos : Numpy array
         Updated value of genes_start_pos after inversion.
     new_genes_end_pos : Numpy array
@@ -356,7 +356,7 @@ def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos):
     new_barriers_pos : Numpy array
         Updated value of barriers_pos after inversion.
     genome_size: int
-        Updated value of the genome size
+        Updated value of the genome size.
     
     """
     ### sample the indel position
@@ -589,50 +589,105 @@ def update_files(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
     for file in [new_gff, new_tss, new_tts, new_barr]:
         file.close()
 
-INITIAL_PARAMETERS = "params.ini"
-DISCRET_STEP = 60
+
+
+def evolution(start, end, barr, out, genome_size, initial_expression, previous_fitness, PARAMS):
+    """ Simulation of the evolution. 
+        
+    
+    Parameters
+    ----------
+    start : Numpy array
+        Array of ints representing the begining position of genes.
+    end : Numpy array
+        Array of ints representing the ending position of genes.
+    barr : Numpy array
+        Array of ints representing the position of barriers.
+    out : Python list
+        list of the open position intervals in the genome where there 
+        are not any genes   
+    genome_size : int
+        Genome size in base pair.
+    initial_expression : Numpy array
+        Array of ints representing the initial number of transcripts 
+        for each gene, ordered by gene ID.
+    previous_fitness : float
+        computed initial fitness of the invidual, following the formula:
+            fitness = exp(-sum(|ln(observed_for_gene_i / target_for_gene_i)|))
+    PARAMS : Python list
+        list of the following parameters:
+            TARGET_FREQS : Numpy array
+                Array of floats representing target relative expression level 
+                for each gene.
+            NEXT_GEN_PARAMS : str
+                Path and name of the parameter file necessary for 
+                the expression_simulation function, at the next generation.
+            NEXT_GEN_GFF : str
+                Name of the .gff file (gene positions) at the next generation.
+            NEXT_GEN_TSS : str
+                Name of the TSS file (gene start positions) 
+                at the next generation.
+            NEXT_GEN_TTS : str
+                Name of the TTS file (gene end positions)
+                at the next generation.
+            NEXT_GEN_BARRIERS : str
+                Name of the .dat file containing barrier positions 
+                at the next generation.
+                
+    Return
+    ----
+    
+    """
+    DISCRET_STEP = int(input("unit of length of nucleotides that is deleted or inserted: "))#60
+    INVERSION_PROBA = float(input("Probability for an evolutive event to be an inversion: ")) #0.5 # Probability for an evolutive event to be an inversion.
+    NB_GENERATIONS = int(input("number of generations: "))#30
+    q_type = input("choose amongst the following:\n (1) q = (1 / 1000) * np.exp(- generation / 5) \n" )
+    
+    all_fitnesses = [previous_fitness]
+    all_types = ["initial"]
+    for generation in range(NB_GENERATIONS):
+        # Random evolutive event
+        event_type, new_size, new_start, new_end, new_barr = (
+                evolutive_event(DISCRET_STEP, INVERSION_PROBA, genome_size, start, end,
+                                barr, out))
+        # Update parameter files and run expression simulation.
+        update_files(new_size, new_start, new_end, new_barr, PARAMS[2],
+                     PARAMS[3], PARAMS[4], PARAMS[5])
+        new_expression = expression_simulation(PARAMS[1], "out.txt")
+        new_fitness = compute_fitness(new_expression, PARAMS[0])
+        
+        # Accept or reject the mutation.
+        print("Generation ", end="")
+        print(generation, end=":\n")
+        print(event_type + " event")
+        print("Fitness: ", end="")
+        print(new_fitness)
+        if q_type == "1":
+            q = (1 / 1000) * np.exp(- generation / 5)
+        if accept_mutation(previous_fitness, new_fitness, q):
+            print("Accepted")
+            previous_fitness = new_fitness
+            genome_size, start, end, barr, = new_size, new_start, new_end, new_barr
+            out = pos_out_from_pos_lists(start, end, barr)
+            
+        # Keep track of each event
+        all_fitnesses.append(previous_fitness)
+        all_types.append(event_type)
+    
+    plt.plot(all_fitnesses)
+
+INITIAL_PARAMETERS = "params.ini" # name of the file containing the initial parameter values necessary for the expression_simulation function
 TARGET_FREQS = target_expression("environment.dat")
-INVERSION_PROBA = 0.5 # Probability for an evolutive event to be an inversion.
 NEXT_GEN_PARAMS = "params_nextGen.ini"
 NEXT_GEN_GFF = "nextGen/nextGen.gff"
 NEXT_GEN_TSS = "nextGen/nextGenTSS.dat"
 NEXT_GEN_TTS = "nextGen/nextGenTTS.dat"
 NEXT_GEN_BARRIERS = "nextGen/nextGenProt.dat"
-NB_GENERATIONS = 30
+
 initial_expression = expression_simulation(INITIAL_PARAMETERS, "out.txt")
 previous_fitness = compute_fitness(initial_expression, TARGET_FREQS)
 start, end, barr, out, size = pos_out_genes(INITIAL_PARAMETERS)
 
+PARAMS = [TARGET_FREQS, NEXT_GEN_PARAMS, NEXT_GEN_GFF, NEXT_GEN_TSS, NEXT_GEN_TTS, NEXT_GEN_BARRIERS] # parameters to input in the evolution function
 
-all_fitnesses = [previous_fitness]
-all_types = ["initial"]
-for generation in range(NB_GENERATIONS):
-    # Random evolutive event
-    event_type, new_size, new_start, new_end, new_barr = (
-            evolutive_event(DISCRET_STEP, INVERSION_PROBA, size, start, end,
-                            barr, out))
-    # Update parameter files and run expression simulation.
-    update_files(new_size, new_start, new_end, new_barr, NEXT_GEN_GFF,
-                 NEXT_GEN_TSS, NEXT_GEN_TTS, NEXT_GEN_BARRIERS)
-    new_expression = expression_simulation(NEXT_GEN_PARAMS, "out.txt")
-    new_fitness = compute_fitness(new_expression, TARGET_FREQS)
-    
-    # Accept or reject the mutation.
-    print("Generation ", end="")
-    print(generation, end=":\n")
-    print(event_type + " event")
-    print("Fitness: ", end="")
-    print(new_fitness)
-    q = (1 / 1000) * np.exp(- generation / 5)
-    if accept_mutation(previous_fitness, new_fitness, q):
-        print("Accepted")
-        previous_fitness = new_fitness
-        size, start, end, barr, = new_size, new_start, new_end, new_barr
-        out = pos_out_from_pos_lists(start, end, barr)
-        
-    # Keep track of each event
-    all_fitnesses.append(previous_fitness)
-    all_types.append(event_type)
-
-plt.plot(all_fitnesses)
-
+evolution(start, end, barr, out, size, initial_expression, previous_fitness, PARAMS)
