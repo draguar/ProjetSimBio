@@ -8,6 +8,7 @@ import numpy as np
 import os
 import re
 import matplotlib.pyplot as plt
+import pandas as pd
 
 def target_expression(environment_file):
     """Get the target expression from given file.
@@ -641,7 +642,7 @@ def evolution(start, end, barr, out, genome_size, initial_expression, previous_f
     DISCRET_STEP = int(input("unit of length of nucleotides that is deleted or inserted: "))#60
     INVERSION_PROBA = float(input("Probability for an evolutive event to be an inversion: ")) #0.5 # Probability for an evolutive event to be an inversion.
     NB_GENERATIONS = int(input("number of generations: "))#30
-    q_type = input("choose amongst the following:\n (1) q = (1 / 1000) * np.exp(- generation / 5) \n" )
+    q_type = input("choose amongst the following:\n (1) q = (1 / 1000) * np.exp(- generation / 5) \n (2) q = Inf\n" )
     
     accepted_fitnesses = [previous_fitness]
     proposed_fitnesses = [previous_fitness]
@@ -667,6 +668,8 @@ def evolution(start, end, barr, out, genome_size, initial_expression, previous_f
         print(new_fitness)
         if q_type == "1":
             q = (1 / 1000) * np.exp(- generation / 5)
+        if q_type == "2":
+            q = float("Inf")
         if accept_mutation(previous_fitness, new_fitness, q):
             accepted_status.append("accepted")
             previous_fitness = new_fitness
@@ -697,7 +700,7 @@ initial_expression = expression_simulation(INITIAL_PARAMETERS, "out.txt")
 previous_fitness = compute_fitness(initial_expression, TARGET_FREQS)
 start, end, barr, out, size = pos_out_genes(INITIAL_PARAMETERS)
 
-
+OUTPUT_FILENAME = input("path and name of the output csv file: ")
 (accepted_fitnesses, proposed_fitnesses, accepted_status, all_types,
  generation_numbers) = evolution(start, end, barr, out, size,
                                  initial_expression, previous_fitness, PARAMS)
@@ -710,3 +713,11 @@ plt.scatter(generation_numbers, proposed_fitnesses, marker="+",
             c=[COLORS[event_type] for event_type in all_types])
 
 plt.show()
+
+if OUTPUT_FILENAME:
+    output_matrix = np.vstack((accepted_fitnesses,
+                               proposed_fitnesses, accepted_status, all_types))
+    output_df = pd.DataFrame(data=output_matrix, columns=generation_numbers,
+                             index=["system fitness", "proposed fitness",
+                                    "accepted", "event type"])
+    output_df.to_csv(OUTPUT_FILENAME)
