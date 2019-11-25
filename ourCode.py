@@ -658,7 +658,11 @@ def evolution(start, end, barr, out, genome_size, initial_expression, previous_f
         update_files(new_size, new_start, new_end, new_barr, PARAMS[2],
                      PARAMS[3], PARAMS[4], PARAMS[5])
         new_expression = expression_simulation(PARAMS[1], "out.txt")
-        new_fitness = compute_fitness(new_expression, PARAMS[0])
+        try:
+            new_fitness = compute_fitness(new_expression, PARAMS[0])
+        except ValueError:
+            print(new_expression)
+            raise
         
         # Accept or reject the mutation.
         print("Generation ", end="")
