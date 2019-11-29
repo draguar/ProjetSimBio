@@ -667,7 +667,11 @@ def evolution(start, end, barr, out, genome_size, initial_expression, previous_f
             new_fitness = compute_fitness(new_expression, PARAMS[0])
         except ValueError:
             print(new_expression)
+            print("ex:", [genome_size, start, end, barr])
+            print("event:", event_type)
+            print("new:", [new_size, new_start, new_end, new_barr])
             raise
+            
         
         # Accept or reject the mutation.
         print("Generation ", end="")
@@ -681,7 +685,7 @@ def evolution(start, end, barr, out, genome_size, initial_expression, previous_f
         if accept_mutation(previous_fitness, new_fitness, q):
             accepted_status.append("accepted")
             previous_fitness = new_fitness
-            genome_size, start, end, barr, = new_size, new_start, new_end, new_barr
+            genome_size, start, end, barr = new_size, new_start, new_end, new_barr
             out = pos_out_from_pos_lists(start, end, barr)
         else:
             accepted_status.append("rejected")
