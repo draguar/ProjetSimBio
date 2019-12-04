@@ -30,7 +30,7 @@ def target_expression(environment_file):
     return np.asarray(target_exp, dtype=float)
 
 
-def expression_simulation(params_file, out_file):
+def expression_simulation(params_file, out_file, gene_start_pos):
     """Run  the expression  simulation with given parameters.
     
     Parameters
@@ -39,6 +39,8 @@ def expression_simulation(params_file, out_file):
         Path and name of the parameters file.
     out_file : str
         Path and name of the output file.
+    gene_start_pos : Numpy array
+        Array of ints representing the begining position of genes.
         
     Returns
     -------
@@ -55,10 +57,21 @@ def expression_simulation(params_file, out_file):
                     + out_file)
     os.system(term_command)
     with open(out_file, "r") as out:
+        file_content = out.read()
         transcript_nbs = re.findall("Transcript ID [0-9]+ : ([0-9]+)",
-                                    out.read())
-    return np.asarray(transcript_nbs, dtype=int)
-
+                                    file_content)
+        transcript_nbs = np.asarray(transcript_nbs, dtype=int)
+        # Transcripts are reindexed, we fetch their starting position to map
+        # transcription values to the right gene.
+        starts = re.findall("\n[0-9] +[0-9] +[0-9] +[\-0-9]+ +([0-9]+)",
+                            file_content)
+        starts = np.asarray(starts, dtype=int)
+    # Reorder transcription values
+    transcription_values = np.full(len(starts), np.nan)
+    for k, start_pos in enumerate(gene_start_pos):
+        transcript_id, = np.where(starts == start_pos)
+        transcription_values[k] = transcript_nbs[transcript_id[0]]
+    return transcription_values
 
 def compute_fitness(observed_transcript_numbers, target_frequencies):
     """Compute the fitness of an individual with given gene expression pattern
@@ -662,7 +675,7 @@ def evolution(start, end, barr, out, genome_size, initial_expression, previous_f
         # Update parameter files and run expression simulation.
         update_files(new_size, new_start, new_end, new_barr, PARAMS[2],
                      PARAMS[3], PARAMS[4], PARAMS[5])
-        new_expression = expression_simulation(PARAMS[1], "out.txt")
+        new_expression = expression_simulation(PARAMS[1], "out.txt", new_start)
         try:
             new_fitness = compute_fitness(new_expression, PARAMS[0])
         except ValueError:
@@ -708,9 +721,10 @@ NEXT_GEN_BARRIERS = "nextGen/nextGenProt.dat"
 COLORS = {"initial" : "black", "deletion" : "red", "insertion" : "green", "inversion" : "purple"}
 PARAMS = [TARGET_FREQS, NEXT_GEN_PARAMS, NEXT_GEN_GFF, NEXT_GEN_TSS, NEXT_GEN_TTS, NEXT_GEN_BARRIERS] # parameters to input in the evolution function
 
-initial_expression = expression_simulation(INITIAL_PARAMETERS, "out.txt")
-previous_fitness = compute_fitness(initial_expression, TARGET_FREQS)
+
 start, end, barr, out, size = pos_out_genes(INITIAL_PARAMETERS)
+initial_expression = expression_simulation(INITIAL_PARAMETERS, "out.txt", start)
+previous_fitness = compute_fitness(initial_expression, TARGET_FREQS)
 
 OUTPUT_FILENAME = input("path and name of the output csv file: ")
 (accepted_fitnesses, proposed_fitnesses, accepted_status, all_types,
