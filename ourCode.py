@@ -675,15 +675,17 @@ def evolution(start, end, barr, out, genome_size, initial_expression, previous_f
         # Update parameter files and run expression simulation.
         update_files(new_size, new_start, new_end, new_barr, PARAMS[2],
                      PARAMS[3], PARAMS[4], PARAMS[5])
-        new_expression = expression_simulation(PARAMS[1], "out.txt", new_start)
-        try:
-            new_fitness = compute_fitness(new_expression, PARAMS[0])
-        except ValueError:
-            print(new_expression)
-            print("ex:", [genome_size, start, end, barr])
-            print("event:", event_type)
-            print("new:", [new_size, new_start, new_end, new_barr])
-            raise
+        error = True
+        while(error):
+            try:
+                new_expression = expression_simulation(PARAMS[1], "out.txt", new_start)
+                new_fitness = compute_fitness(new_expression, PARAMS[0])
+                error = False
+            except ValueError:
+                print(new_expression)
+                print("ex:", [genome_size, start, end, barr])
+                print("event:", event_type)
+                print("new:", [new_size, new_start, new_end, new_barr])
             
         
         # Accept or reject the mutation.
