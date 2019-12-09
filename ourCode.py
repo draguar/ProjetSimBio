@@ -681,7 +681,7 @@ def evolution(start, end, barr, out, genome_size, initial_expression, previous_f
                 new_expression = expression_simulation(PARAMS[1], "out.txt", new_start)
                 new_fitness = compute_fitness(new_expression, PARAMS[0])
                 error = False
-            except ValueError:
+            except IndexError:
                 print(new_expression)
                 print("ex:", [genome_size, start, end, barr])
                 print("event:", event_type)
