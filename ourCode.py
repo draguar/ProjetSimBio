@@ -343,7 +343,7 @@ def sample(out, Ngen, u):
         
 
 
-def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos):
+def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos, out_positions):
     """ deletes or inserts in the plasmid a unit length u of nucleotides 
     
     Parameters
@@ -358,6 +358,9 @@ def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos):
         Array of ints representing the ending position of genes.
     barriers_pos : Numpy array
         Array of ints representing the position of barriers.
+		out_positions : Numpy array
+        2-D array of ints. Each line represents an open interval containing
+        no gene nor barrier.
         
     Returns
     -------
@@ -524,7 +527,7 @@ def evolutive_event(DISCRET_STEP, inversion_proba, genome_size,
     else:
         # APPEL FONCTION INDEL
         return indel(DISCRET_STEP, genome_size, genes_start_pos, genes_end_pos,
-                     barriers_pos)
+                     barriers_pos, out_positions)
         
     
 def update_files(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
