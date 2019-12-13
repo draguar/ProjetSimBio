@@ -374,7 +374,7 @@ def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos):
     
     """
     ### sample the indel position
-    indel_pos = 27613 #sample(out_positions, genome_size)
+    indel_pos = sample(out_positions, genome_size)
     #print(indel_pos)
     
     ### initialization of the new positions
@@ -384,7 +384,7 @@ def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos):
     
     ### choose whether it is an insertion or a deletion
     p = np.random.uniform(0,1) # draw a random number between 0 and 1
-    if p<.5:
+    if p<0.5:## changed proba of indel
         # it is an insertion
         #print("insert")
         event_type = "insertion"
