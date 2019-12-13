@@ -377,7 +377,7 @@ def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos, out_posi
     
     """
     ### sample the indel position
-    indel_pos = sample(out_positions, genome_size)
+    indel_pos = sample(out_positions, genome_size, u)
     #print(indel_pos)
     
     ### initialization of the new positions
