@@ -343,7 +343,7 @@ def sample(out, Ngen, u):
         
 
 
-def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos, out_positions):
+def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos, out_positions, p_insertion):
     """ deletes or inserts in the plasmid a unit length u of nucleotides 
     
     Parameters
@@ -361,6 +361,8 @@ def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos, out_posi
 		out_positions : Numpy array
         2-D array of ints. Each line represents an open interval containing
         no gene nor barrier.
+		p_insertion : float
+				Probability of the event to be an insertion and not a deletion.
         
     Returns
     -------
@@ -387,7 +389,7 @@ def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos, out_posi
     
     ### choose whether it is an insertion or a deletion
     p = np.random.uniform(0,1) # draw a random number between 0 and 1
-    if p<0.5:## changed proba of indel
+    if p<p_insertion:## changed proba of indel
         # it is an insertion
         #print("insert")
         event_type = "insertion"
@@ -482,7 +484,7 @@ def indel(u, genome_size, genes_start_pos, genes_end_pos, barriers_pos, out_posi
 
 def evolutive_event(DISCRET_STEP, inversion_proba, genome_size,
                     genes_start_pos, genes_end_pos, barriers_pos,
-                    out_positions):
+                    out_positions, p_insertion):
     """Generate an evolutive event on given genome.
     
     The event can either be a genome inversion (with proba inversion_proba),
@@ -503,6 +505,8 @@ def evolutive_event(DISCRET_STEP, inversion_proba, genome_size,
     out_positions : Numpy array
         2-D array of ints. Each line represents an open interval containing
         no gene nor barrier.
+		p_insertion : float
+				Probability for an indel event to be an insertion.
     Returns
     -------
     genome_size : ine
@@ -527,7 +531,7 @@ def evolutive_event(DISCRET_STEP, inversion_proba, genome_size,
     else:
         # APPEL FONCTION INDEL
         return indel(DISCRET_STEP, genome_size, genes_start_pos, genes_end_pos,
-                     barriers_pos, out_positions)
+                     barriers_pos, out_positions, p_insertion)
         
     
 def update_files(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
@@ -657,7 +661,9 @@ def evolution(start, end, barr, out, genome_size, initial_expression, previous_f
     """
     DISCRET_STEP = int(input("unit of length of nucleotides that is deleted or inserted: "))#60
     INVERSION_PROBA = float(input("Probability for an evolutive event to be an inversion: ")) #0.5 # Probability for an evolutive event to be an inversion.
+    P_INSERTION = float(input("Probability for an indel event to be an insertion: ")) #0.5 # Probability for an evolutive event to be an inversion.
     NB_GENERATIONS = int(input("number of generations: "))#30
+
     q_type = input("choose amongst the following:\n (1) q = (1 / 1000) * "
                    + "np.exp(- generation / 5) \n (2) q = Inf\n (3) q = cst\n")
     if q_type == "2":
@@ -674,7 +680,7 @@ def evolution(start, end, barr, out, genome_size, initial_expression, previous_f
         # Random evolutive event
         event_type, new_size, new_start, new_end, new_barr = (
                 evolutive_event(DISCRET_STEP, INVERSION_PROBA, genome_size, start, end,
-                                barr, out))
+                                barr, out, P_INSERTION))
         # Update parameter files and run expression simulation.
         update_files(new_size, new_start, new_end, new_barr, PARAMS[2],
                      PARAMS[3], PARAMS[4], PARAMS[5])
