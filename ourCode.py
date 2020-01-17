@@ -707,6 +707,7 @@ def evolution(start, end, barr, out, genome_size, initial_expression, previous_f
             q = (1 / 1000) * np.exp(- generation / 5)
         
         if accept_mutation(previous_fitness, new_fitness, q):
+            final_expression = new_expression
             accepted_status.append("accepted")
             previous_fitness = new_fitness
             genome_size, start, end, barr = new_size, new_start, new_end, new_barr
@@ -720,7 +721,7 @@ def evolution(start, end, barr, out, genome_size, initial_expression, previous_f
         all_types.append(event_type)
     
     return(accepted_fitnesses, proposed_fitnesses, accepted_status, all_types,
-           generation_numbers)
+           generation_numbers, final_expression)
 
 INITIAL_PARAMETERS = "params.ini" # name of the file containing the initial parameter values necessary for the expression_simulation function
 TARGET_FREQS = target_expression("environment.dat")
@@ -739,8 +740,11 @@ previous_fitness = compute_fitness(initial_expression, TARGET_FREQS)
 
 OUTPUT_FILENAME = input("path and name of the output csv file: ")
 (accepted_fitnesses, proposed_fitnesses, accepted_status, all_types,
- generation_numbers) = evolution(start, end, barr, out, size,
+ generation_numbers, final_expression) = evolution(start, end, barr, out, size,
                                  initial_expression, previous_fitness, PARAMS)
+                                 
+print("initial expression", initial_expression)
+print("final expression", final_expression)
 
 plt.ylim(.9*min(proposed_fitnesses), 1.1*max(accepted_fitnesses))
 plt.plot(accepted_fitnesses, linestyle="--", markersize=0, color="k", zorder=1)
