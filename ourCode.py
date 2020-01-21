@@ -610,8 +610,33 @@ def update_files(genome_size, genes_start_pos, genes_end_pos, barriers_pos,
     for file in [new_gff, new_tss, new_tts, new_barr]:
         file.close()
 
-
-
+def copy_genome(PARAMS):
+    """copy the last accepted genome to save it
+    
+    Parameters
+    ----------
+    PARAMS : Python list
+        list of the following parameters:
+            NEXT_GEN_GFF : str
+                Name of the .gff file (gene positions) at the next generation.
+            NEXT_GEN_TSS : str
+                Name of the TSS file (gene start positions) 
+                at the next generation.
+            NEXT_GEN_TTS : str
+                Name of the TTS file (gene end positions)
+                at the next generation.
+            NEXT_GEN_BARRIERS : str
+                Name of the .dat file containing barrier positions 
+                at the next generation.
+            LAST_ACCEPTED_GENOME : list of str
+                Name of the equivalent files, where we want to copy the previous ones.
+    """
+    
+    for k, filename in enumerate(PARAMS[:-1]):
+        with open(filename, "r") as read_file:
+            with open(PARAMS[-1][k], "w") as write_file:
+                write_file.write(read_file.read())
+                
 def evolution(start, end, barr, out, genome_size, initial_expression, previous_fitness, PARAMS):
     """ Simulation of the evolution. 
         
@@ -712,6 +737,7 @@ def evolution(start, end, barr, out, genome_size, initial_expression, previous_f
             previous_fitness = new_fitness
             genome_size, start, end, barr = new_size, new_start, new_end, new_barr
             out = pos_out_from_pos_lists(start, end, barr)
+            copy_genome(PARAMS[2:])
         else:
             accepted_status.append("rejected")
             
@@ -730,8 +756,9 @@ NEXT_GEN_GFF = "nextGen/nextGen.gff"
 NEXT_GEN_TSS = "nextGen/nextGenTSS.dat"
 NEXT_GEN_TTS = "nextGen/nextGenTTS.dat"
 NEXT_GEN_BARRIERS = "nextGen/nextGenProt.dat"
+LAST_ACCEPTED_GENOME = ["nextGen/last.gff","nextGen/lastTSS.dat","nextGen/lastTTS.dat","nextGen/lastProt.dat"]
 COLORS = {"initial" : "black", "deletion" : "red", "insertion" : "green", "inversion" : "purple"}
-PARAMS = [TARGET_FREQS, NEXT_GEN_PARAMS, NEXT_GEN_GFF, NEXT_GEN_TSS, NEXT_GEN_TTS, NEXT_GEN_BARRIERS] # parameters to input in the evolution function
+PARAMS = [TARGET_FREQS, NEXT_GEN_PARAMS, NEXT_GEN_GFF, NEXT_GEN_TSS, NEXT_GEN_TTS, NEXT_GEN_BARRIERS, LAST_ACCEPTED_GENOME] # parameters to input in the evolution function
 
 
 start, end, barr, out, size = pos_out_genes(INITIAL_PARAMETERS)
