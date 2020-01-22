@@ -1,0 +1,15 @@
+##gff-version 3
+#!gff-spec-version 1.20
+#!processor NCBI annotwriter
+##sequence-region TwisTranscripT/nextGen/nextGen 1 30000
+TwisTranscripT/nextGen/nextGen	RefSeq	region	1	30000	.	+	.	ID=id0;Name=TwisTranscripT/nextGen/nextGen
+TwisTranscripT/nextGen/nextGen	RefSeq	gene	1001	2000	.	+	.	ID=g1;Name=g1
+TwisTranscripT/nextGen/nextGen	RefSeq	gene	4001	5000	.	+	.	ID=g1;Name=g2
+TwisTranscripT/nextGen/nextGen	RefSeq	gene	7001	8000	.	+	.	ID=g1;Name=g3
+TwisTranscripT/nextGen/nextGen	RefSeq	gene	10001	11000	.	+	.	ID=g1;Name=g4
+TwisTranscripT/nextGen/nextGen	RefSeq	gene	13001	14000	.	+	.	ID=g1;Name=g5
+TwisTranscripT/nextGen/nextGen	RefSeq	gene	16001	17000	.	+	.	ID=g1;Name=g6
+TwisTranscripT/nextGen/nextGen	RefSeq	gene	19001	20000	.	+	.	ID=g1;Name=g7
+TwisTranscripT/nextGen/nextGen	RefSeq	gene	22001	23000	.	+	.	ID=g1;Name=g8
+TwisTranscripT/nextGen/nextGen	RefSeq	gene	25001	26000	.	+	.	ID=g1;Name=g9
+TwisTranscripT/nextGen/nextGen	RefSeq	gene	28001	29000	.	+	.	ID=g1;Name=g10
